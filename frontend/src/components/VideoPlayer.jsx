@@ -1,36 +1,47 @@
-import React from 'react';
-import './Video.css';
+import PropTypes from 'prop-types';
 
-const VideoPlayer=({videos}) =>{
-    const getEmbedUrl = (url)=>{
-        if(url.includes('youtube.com') || url.includes('youtu.be')){
-            const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)[1];
-            return `https://www.youtube.com/embed/${videoId}`;
-        }
-        return url;
-    };
-    return(
-        <div className="video-section">
-            {videos.map((video)=>(
-                <div key={video._id} className="video-card">
-                    <h4>{video.title}</h4>
-                    <div className='video-wrapper'>
-                        <iframe 
-                        src={getEmbedUrl(video.url)}
-                        title={video.title}
-                        frameBorder="0"
-                        allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
-                        allowFullScreen
-                        ></iframe>
-                    </div>
-                    <p>{video.description}</p>
-                    <small>Source:{video.source}| Duration:{video.duration}</small>
-                    
-                </div>
-            ))}
-            
-        </div>
-    );
+const YOUTUBE_ID = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+
+const getEmbedUrl = (url) => {
+  const match = url.match(YOUTUBE_ID);
+  return match ? `https://www.youtube-nocookie.com/embed/${match[1]}` : url;
+};
+
+const VideoPlayer = ({ videos }) => {
+  if (!videos || videos.length === 0) {
+    return <div className="empty-state">No videos available for this condition yet.</div>;
+  }
+
+  return (
+    <div className="content-grid">
+      {videos.map((video) => (
+        <article key={video._id} className="card content-card video-card">
+          <div className="video-wrapper">
+            <iframe
+              src={getEmbedUrl(video.url)}
+              title={video.title}
+              loading="lazy"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <h3>{video.title}</h3>
+          {video.description && <p>{video.description}</p>}
+          {(video.source || video.duration) && (
+            <small className="muted">
+              {[video.source && `Source: ${video.source}`, video.duration && `Duration: ${video.duration}`]
+                .filter(Boolean)
+                .join(' · ')}
+            </small>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+};
+
+VideoPlayer.propTypes = {
+  videos: PropTypes.array
 };
 
 export default VideoPlayer;

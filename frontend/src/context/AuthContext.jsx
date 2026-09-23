@@ -1,71 +1,45 @@
-import { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { createContext, useState, useEffect, useCallback } from 'react';
+import api from '../api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('token')));
 
-  // Set auth token
-  const setAuthToken = (token) => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('token', token);
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      localStorage.removeItem('token');
-    }
-  };
-
-  // Load user
-  const loadUser = async () => {
-    try {
-      const res = await axios.get('http://localhost:5000/api/auth/profile');
-      setUser(res.data);
-    } catch (err) {
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Register
-  const register = async (formData) => {
-    const res = await axios.post('http://localhost:5000/api/auth/register', formData);
-    setToken(res.data.token);
-    setAuthToken(res.data.token);
-    await loadUser();
-  };
-
-  // Login
-  const login = async (formData) => {
-    const res = await axios.post('http://localhost:5000/api/auth/login', formData);
-    setToken(res.data.token);
-    setAuthToken(res.data.token);
-    await loadUser();
-  };
-
-  // Logout
-  const logout = () => {
-    setToken(null);
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
     setUser(null);
-    setAuthToken(null);
+  }, []);
+
+  const startSession = ({ token, user }) => {
+    localStorage.setItem('token', token);
+    setUser(user);
   };
 
+  const register = async (formData) => {
+    const res = await api.post('/auth/register', formData);
+    startSession(res.data);
+  };
+
+  const login = async (formData) => {
+    const res = await api.post('/auth/login', formData);
+    startSession(res.data);
+  };
+
+  // Restore the session from a stored token on first load.
   useEffect(() => {
-    if (token) {
-      setAuthToken(token);
-      loadUser();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+    if (!localStorage.getItem('token')) return;
+    api
+      .get('/auth/profile')
+      .then((res) => setUser(res.data))
+      .catch(logout)
+      .finally(() => setLoading(false));
+  }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, register, login, logout }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, loading, register, login, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 };

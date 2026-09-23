@@ -1,15 +1,17 @@
-import React, { useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import AuthForm from '../components/AuthForm';
 
 const Register = () => {
-  const { register } = useContext(AuthContext);
+  const { user, register } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const handleRegister = async (formData) => {
     await register(formData);
-    navigate('/'); // Redirect to home after registration
+    navigate('/dashboard');
   };
 
   return <AuthForm isLogin={false} onSubmit={handleRegister} />;

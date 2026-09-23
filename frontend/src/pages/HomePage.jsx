@@ -1,131 +1,130 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useState, useEffect, useContext, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Search, Leaf, Dumbbell, Apple, PlayCircle, ArrowRight } from 'lucide-react';
+import api, { getErrorMessage } from '../api';
 import AuthContext from '../context/AuthContext';
-import ConditionSelector from '../components/ConditionSelector';
-import HomeRemedyList from '../components/HomeRemedyList';
-import ExerciseList from '../components/ExerciseList';
-import NutritionList from '../components/NutritionList';
-import VideoPlayer from '../components/VideoPlayer';
+import { getConditionIcon } from '../conditionIcons';
+
+const features = [
+  { icon: Leaf, title: 'Home remedies', text: 'Simple, safe practices with clear warnings.' },
+  { icon: Dumbbell, title: 'Exercises', text: 'Step-by-step routines with precautions.' },
+  { icon: Apple, title: 'Nutrition', text: 'What to eat, how much and what to avoid.' },
+  { icon: PlayCircle, title: 'Videos', text: 'Educational content from trusted sources.' }
+];
 
 const HomePage = () => {
   const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
   const [conditions, setConditions] = useState([]);
-  const [selectedCondition, setSelectedCondition] = useState(null);
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { hash } = useLocation();
 
   useEffect(() => {
-    const fetchConditions = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/conditions');
-        setConditions(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
-
-    fetchConditions();
+    api
+      .get('/conditions')
+      .then((res) => setConditions(res.data))
+      .catch((err) => setError(getErrorMessage(err)))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleConditionChange = async (conditionName) => {
-    try {
-      const response = await axios.get(`http://localhost:5000/api/conditions/${conditionName}`);
-      setSelectedCondition(response.data);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  // Scroll to #conditions once the list has rendered (links from the navbar and dashboard).
+  useEffect(() => {
+    if (hash && !loading) document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
+  }, [hash, loading]);
 
-  const requireAuthForAction = (actionCallback) => {
-    return () => {
-      if (!user) {
-        if (window.confirm('Please login to access this feature. Go to login page now?')) {
-          navigate('/login');
-        }
-      } else {
-        actionCallback();
-      }
-    };
-  };
-
-  const handleSaveFavorite = (contentType, contentId) => {
-    console.log(`Saving ${contentType} with ID ${contentId} to favorites`);
-    // API implementation would go here
-  };
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return conditions;
+    return conditions.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.symptoms || []).some((s) => s.toLowerCase().includes(q))
+    );
+  }, [conditions, query]);
 
   return (
-    <div className="container">
-      <header>
-        <h1>Health Information Portal</h1>
-        <p>Find home remedies, exercises, nutrition advice, and educational videos for various health conditions</p>
-        {user && <p className="welcome-message">Welcome back, {user.username}!</p>}
-      </header>
-      
-      <ConditionSelector 
-        conditions={conditions} 
-        onConditionChange={handleConditionChange} 
-      />
-      
-      {selectedCondition && (
-        <div className="condition-info">
-          <h2>{selectedCondition.name}</h2>
-          {selectedCondition.description && (
-            <p className="condition-description">{selectedCondition.description}</p>
-          )}
-          
-          <div className="info-sections">
-            <section className="info-section">
-              <h3><i className="icon remedy-icon"></i> Home Remedies</h3>
-              <HomeRemedyList 
-                remedies={selectedCondition.homeRemedies} 
-                onSaveFavorite={requireAuthForAction(
-                  (remedyId) => handleSaveFavorite('remedy', remedyId)
-                )} 
-              />
-            </section>
-            
-            <section className="info-section">
-              <h3><i className="icon exercise-icon"></i> Exercises</h3>
-              <ExerciseList 
-                exercises={selectedCondition.exercises} 
-                onSaveFavorite={requireAuthForAction(
-                  (exerciseId) => handleSaveFavorite('exercise', exerciseId)
-                )}
-              />
-            </section>
-            
-            <section className="info-section">
-              <h3><i className="icon nutrition-icon"></i> Nutrition</h3>
-              <NutritionList 
-                nutrition={selectedCondition.nutrition} 
-                onSaveFavorite={requireAuthForAction(
-                  (nutritionId) => handleSaveFavorite('nutrition', nutritionId)
-                )}
-              />
-            </section>
-
-            {selectedCondition.videos && selectedCondition.videos.length > 0 && (
-              <section className="info-section">
-                <h3><i className="icon video-icon"></i> Educational Videos</h3>
-                <VideoPlayer 
-                  videos={selectedCondition.videos} 
-                  onSaveFavorite={requireAuthForAction(
-                    (videoId) => handleSaveFavorite('video', videoId)
-                  )}
-                />
-              </section>
-            )}
+    <>
+      <section className="hero">
+        <div className="container hero-inner">
+          <span className="eyebrow">Your personal health companion</span>
+          <h1>
+            Understand your health.<br />
+            <span className="accent">Take the next step.</span>
+          </h1>
+          <p className="hero-text">
+            {user ? `Welcome back, ${user.username}. ` : ''}
+            Explore home remedies, exercises, nutrition advice and educational videos for common
+            chronic conditions, all in one place.
+          </p>
+          <div className="search-box">
+            <Search size={20} />
+            <input
+              type="search"
+              placeholder="Search a condition or symptom, e.g. fatigue"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search conditions"
+            />
           </div>
         </div>
-      )}
-    </div>
+      </section>
+
+      <section className="container features">
+        {features.map(({ icon: Icon, title, text }) => (
+          <div className="feature" key={title}>
+            <span className="feature-icon"><Icon size={20} /></span>
+            <div>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="container section" id="conditions">
+        <div className="section-head">
+          <h2>Health conditions</h2>
+          <p>Select a condition to see personalised guidance.</p>
+        </div>
+
+        {loading && (
+          <div className="condition-grid">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div className="condition-card skeleton" key={i} />
+            ))}
+          </div>
+        )}
+
+        {error && <div className="alert alert-error">Could not load conditions: {error}</div>}
+
+        {!loading && !error && filtered.length === 0 && (
+          <div className="empty-state">No conditions match “{query}”.</div>
+        )}
+
+        {!loading && !error && filtered.length > 0 && (
+          <div className="condition-grid">
+            {filtered.map((condition) => {
+              const Icon = getConditionIcon(condition.name);
+              return (
+                <Link
+                  key={condition._id}
+                  to={`/conditions/${encodeURIComponent(condition.name)}`}
+                  className="condition-card"
+                >
+                  <span className="condition-icon"><Icon size={24} /></span>
+                  <h3>{condition.name}</h3>
+                  <p>{condition.summary || condition.description}</p>
+                  <span className="card-link">
+                    View guidance <ArrowRight size={16} />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </>
   );
 };
 

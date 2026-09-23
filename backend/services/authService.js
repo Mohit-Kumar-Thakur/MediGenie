@@ -1,87 +1,45 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
-// Token generation
 const generateToken = (userId) => {
-    return jwt.sign({ id: userId },
-        process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-            algorithm: 'HS256'
-        }
-    );
+    if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not set');
+    return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+        algorithm: 'HS256'
+    });
 };
 
-const generateRefreshToken = (userId) => {
-    return jwt.sign({ id: userId },
-        process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' }
-    );
-};
+const toPublicUser = (user) => ({
+    id: user._id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt
+});
 
-// Login
-exports.loginUser = async(email, password) => {
-    try {
-        const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) throw new Error('USER_NOT_FOUND');
-
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) throw new Error('INVALID_CREDENTIALS');
-
-        const token = generateToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-
-        return {
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email
-            },
-            token,
-            refreshToken
-        };
-    } catch (error) {
-        throw error;
+exports.loginUser = async (email, password) => {
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !(await user.comparePassword(password))) {
+        throw new Error('INVALID_CREDENTIALS');
     }
+    return { user: toPublicUser(user), token: generateToken(user._id) };
 };
 
-// Registration
-exports.registerUser = async(username, email, password) => {
-    try {
-        if (password.length < 8) {
-            throw new Error('PASSWORD_TOO_SHORT');
-        }
-
-        const existingUser = await User.findOne({ email: email.toLowerCase() });
-        if (existingUser) throw new Error('USER_EXISTS');
-
-        const user = new User({ username, email: email.toLowerCase(), password });
-        await user.save();
-
-        const token = generateToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-
-        return {
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email
-            },
-            token,
-            refreshToken
-        };
-    } catch (error) {
-        throw error;
+exports.registerUser = async (username, email, password) => {
+    const existing = await User.findOne({
+        $or: [{ email: email.toLowerCase() }, { username }]
+    });
+    if (existing) {
+        throw new Error(existing.username === username ? 'USERNAME_TAKEN' : 'USER_EXISTS');
     }
+
+    const user = new User({ username, email: email.toLowerCase(), password });
+    await user.save();
+    return { user: toPublicUser(user), token: generateToken(user._id) };
 };
 
-// Get user profile
-exports.getUserProfile = async(userId) => {
-    try {
-        const user = await User.findById(userId)
-            .select('-password -__v -createdAt');
-        if (!user) throw new Error('USER_NOT_FOUND');
-        return user;
-    } catch (error) {
-        throw error;
-    }
+exports.getUserProfile = async (userId) => {
+    const user = await User.findById(userId);
+    if (!user) throw new Error('USER_NOT_FOUND');
+    return toPublicUser(user);
 };

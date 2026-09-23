@@ -6,7 +6,7 @@ class ConditionController {
             const { name } = req.params;
             const video = req.body;
             const condition = await ConditionService.addVideo(name, video);
-            res.status(201).json({ error: error.message });
+            res.status(201).json(condition);
 
         } catch (error) {
             res.status(400).json({ error: error.message });

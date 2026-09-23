@@ -1,49 +1,37 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import { Clock, Repeat, ShieldAlert } from 'lucide-react';
 
 const ExerciseList = ({ exercises }) => {
   if (!exercises || exercises.length === 0) {
-    return (
-      <div className="empty-state">
-        <p>No exercises available for this condition.</p>
-      </div>
-    );
+    return <div className="empty-state">No exercises available for this condition yet.</div>;
   }
 
   return (
-    <div className="exercise-list">
+    <div className="content-grid">
       {exercises.map((exercise, index) => (
-        <article key={index} className="exercise-card">
-          <h4 className="exercise-title">{exercise.title}</h4>
-          {exercise.description && (
-            <p className="exercise-description">{exercise.description}</p>
+        <article key={exercise._id || index} className="card content-card">
+          <h3>{exercise.title}</h3>
+          {exercise.description && <p>{exercise.description}</p>}
+
+          {(exercise.duration || exercise.frequency) && (
+            <div className="meta-row">
+              {exercise.duration && <span className="meta"><Clock size={15} /> {exercise.duration}</span>}
+              {exercise.frequency && <span className="meta"><Repeat size={15} /> {exercise.frequency}</span>}
+            </div>
           )}
-          
-          {exercise.steps && exercise.steps.length > 0 && (
-            <div className="exercise-section">
-              <h5>Steps:</h5>
+
+          {exercise.steps?.length > 0 && (
+            <div className="content-section">
+              <h4>Steps</h4>
               <ol className="steps-list">
-                {exercise.steps.map((step, i) => (
-                  <li key={i}>{step}</li>
-                ))}
+                {exercise.steps.map((step, i) => <li key={i}>{step}</li>)}
               </ol>
             </div>
           )}
-          
-          {(exercise.duration || exercise.frequency) && (
-            <div className="exercise-meta">
-              {exercise.duration && (
-                <p><strong>Duration:</strong> {exercise.duration}</p>
-              )}
-              {exercise.frequency && (
-                <p><strong>Frequency:</strong> {exercise.frequency}</p>
-              )}
-            </div>
-          )}
-          
+
           {exercise.precautions && (
-            <div className="exercise-precautions">
-              <h5>Precautions:</h5>
+            <div className="callout callout-danger">
+              <ShieldAlert size={18} />
               <p>{exercise.precautions}</p>
             </div>
           )}

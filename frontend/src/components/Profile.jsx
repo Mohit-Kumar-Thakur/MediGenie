@@ -1,23 +1,30 @@
-import { useContext } from 'react';
-import AuthContext from '../context/AuthContext';
+import PropTypes from 'prop-types';
 
-const Profile = () => {
-  const { user } = useContext(AuthContext);
+const Profile = ({ user }) => (
+  <div className="card profile">
+    <div className="avatar" aria-hidden="true">{user.username.charAt(0).toUpperCase()}</div>
+    <h2>Your profile</h2>
+    <dl className="profile-info">
+      <dt>Username</dt>
+      <dd>{user.username}</dd>
+      <dt>Email</dt>
+      <dd>{user.email}</dd>
+      {user.createdAt && (
+        <>
+          <dt>Member since</dt>
+          <dd>{new Date(user.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</dd>
+        </>
+      )}
+    </dl>
+  </div>
+);
 
-  if (!user) {
-    return <p>Please log in to view your profile</p>;
-  }
-
-  return (
-    <div className="profile">
-      <h2>Your Profile</h2>
-      <div className="profile-info">
-        <p><strong>Username:</strong> {user.username}</p>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>Account Created:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
-      </div>
-    </div>
-  );
+Profile.propTypes = {
+  user: PropTypes.shape({
+    username: PropTypes.string.isRequired,
+    email: PropTypes.string.isRequired,
+    createdAt: PropTypes.string
+  }).isRequired
 };
 
 export default Profile;

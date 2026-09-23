@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema({
             message: 'Password must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character'
         }
     },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
     isVerified: {
         type: Boolean,
         default: false
@@ -47,10 +52,6 @@ const userSchema = new mongoose.Schema({
         default: Date.now
     }
 });
-
-// Remove these redundant lines:
-// userSchema.index({ email: 1 }, { unique: true });
-// userSchema.index({ username: 1 }, { unique: true });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {

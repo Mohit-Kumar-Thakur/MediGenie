@@ -46,12 +46,14 @@ const conditionSchema = new mongoose.Schema({
             'Thyroid Disease',
             'Anemia',
             'Hypertension',
-            'Stroke Prediction',
+            'Stroke',
             'Hepatitis',
             'Breast Cancer'
         ]
     },
     description: String,
+    summary: String,
+    symptoms: [String],
     videos: [videoSchema],
     homeRemedies: [remedySchema],
     exercises: [exerciseSchema],

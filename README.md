@@ -20,31 +20,33 @@ It serves as a virtual health companion that connects AI insights with actionabl
 
 ## System Architecture
 
-Frontend: React.js
-Backend: FastAPI / Express.js
-Database: MongoDB
-ML Model: Random Forest (Scikit-Learn)
-API Routes: /predict-disease, /nutrition, /remedies, /exercises, /videos, /register, /login
+Frontend: React 18 + Vite (React Router, Axios, lucide-react icons)
+Backend: Node.js + Express REST API
+Database: MongoDB (Mongoose), auto-seeded with content for 8 conditions on first run
+Hosting: Vercel (frontend and backend deployed together as Vercel Services)
+ML Service: planned (`ml_service/`), not yet wired into the web app
 
-### Process Flow
+### Project Structure
 
-1. User fills a health questionnaire
-2. Backend processes input and forwards it to the ML model
-3. Model predicts the likely disease
-4. Frontend displays results and health recommendations
+```
+backend/     Express API (routes, controllers, services, models, seed data)
+frontend/    React + Vite single-page app
+ml_service/  Placeholder for the disease prediction model
+vercel.json  Vercel Services config: /api/* -> backend, everything else -> frontend
+```
 
 ---
 
 ## Tech Stack
 
-| Layer           | Technology                           |
-| --------------- | ------------------------------------ |
-| Frontend        | React.js, Axios, TailwindCSS         |
-| Backend         | Node.js, Express.js, FastAPI         |
-| Database        | MongoDB                              |
-| ML Libraries    | Scikit-Learn, Pandas, NumPy, Seaborn |
-| Security        | JWT, Password Hashing                |
-| Version Control | GitHub, GitBash                      |
+| Layer           | Technology                             |
+| --------------- | -------------------------------------- |
+| Frontend        | React.js, Vite, React Router, Axios    |
+| Backend         | Node.js, Express.js, express-validator |
+| Database        | MongoDB, Mongoose                      |
+| ML Libraries    | Scikit-Learn, Pandas, NumPy, Seaborn   |
+| Security        | JWT, bcrypt password hashing, Helmet   |
+| Deployment      | Vercel                                 |
 
 ---
 
@@ -70,50 +72,55 @@ API Routes: /predict-disease, /nutrition, /remedies, /exercises, /videos, /regis
 
 ### Prerequisites
 
-Install the following before running the project:
+* Node.js 18 or higher
+* A MongoDB database (local or MongoDB Atlas)
 
-* Node.js (version 18 or higher)
-* Python (version 3.8 or higher)
-* MongoDB (local or cloud)
-
-### Backend Setup
+### Backend
 
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
+cp .env.example .env   # then fill in MONGO_URI and JWT_SECRET
+npm install
+npm run dev            # http://localhost:5000
 ```
 
-### Frontend Setup
+The `conditions` collection is seeded automatically the first time the API connects to an empty database.
+
+### Frontend
 
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev            # http://localhost:3000, proxies /api to the backend
 ```
 
-### Database Configuration
+### Environment Variables
 
-Add your MongoDB connection and secret key to the `.env` file:
+| Variable         | Description                                   |
+| ---------------- | --------------------------------------------- |
+| `MONGO_URI`      | MongoDB connection string                     |
+| `JWT_SECRET`     | Secret used to sign login tokens              |
+| `JWT_EXPIRES_IN` | Token lifetime (optional, default `7d`)       |
 
-```
-MONGO_URI = your_mongodb_connection_string
-JWT_SECRET = your_secret_key
-```
+### Deploying to Vercel
+
+The repo root contains `vercel.json`, which deploys the frontend and backend as one project. Set `MONGO_URI` and `JWT_SECRET` in the Vercel project settings, then run `vercel --prod` from the repo root.
 
 ---
 
 ## API Endpoints
 
-| Endpoint         | Method | Description                           |
-| ---------------- | ------ | ------------------------------------- |
-| /predict-disease | POST   | Predicts disease based on form inputs |
-| /nutrition       | GET    | Returns dietary recommendations       |
-| /home-remedies   | GET    | Provides home remedy tips             |
-| /exercises       | GET    | Suggests condition-specific exercises |
-| /videos          | GET    | Returns educational videos            |
-| /register        | POST   | Registers new user                    |
-| /login           | POST   | Authenticates user                    |
+| Endpoint                     | Method | Auth  | Description                              |
+| ---------------------------- | ------ | ----- | ---------------------------------------- |
+| /api/health                  | GET    | -     | Health check                             |
+| /api/auth/register           | POST   | -     | Register a new user                      |
+| /api/auth/login              | POST   | -     | Log in and receive a JWT                 |
+| /api/auth/profile            | GET    | User  | Current user profile                     |
+| /api/conditions              | GET    | -     | List all conditions                      |
+| /api/conditions/:name        | GET    | -     | Remedies, exercises, nutrition, videos   |
+| /api/conditions (+ sub-routes) | POST/PUT/DELETE | Admin | Manage condition content      |
+
+To make a user an admin, set `role: "admin"` on their document in the `users` collection.
 
 ---
 
