@@ -104,7 +104,7 @@ npm run dev            # http://localhost:3000, proxies /api to the backend
 
 ### Deploying to Vercel
 
-The repo root contains `vercel.json`, which deploys the frontend and backend as one project. Set `MONGO_URI` and `JWT_SECRET` in the Vercel project settings, then run `vercel --prod` from the repo root.
+The repo root contains `vercel.json`, which deploys the frontend and backend as one project. Set `JWT_SECRET` and a MongoDB connection string (`MONGO_URI`, or `MONGODB_URI` from the Vercel MongoDB Atlas integration) in the Vercel project settings, then run `vercel --prod` from the repo root.
 
 ---
 

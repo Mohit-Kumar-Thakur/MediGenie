@@ -6,11 +6,13 @@ if (!cached) cached = global.__mongoose = { conn: null, promise: null };
 
 const connectDB = async () => {
     if (cached.conn) return cached.conn;
-    if (!process.env.MONGO_URI) throw new Error('MONGO_URI is not set');
+    // MONGODB_URI is what the Vercel MongoDB Atlas integration provides.
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    if (!uri) throw new Error('MONGO_URI is not set');
 
     if (!cached.promise) {
         cached.promise = mongoose
-            .connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 8000 })
+            .connect(uri, { serverSelectionTimeoutMS: 8000 })
             .then(async (m) => {
                 await require('./seed')();
                 return m;
